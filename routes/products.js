@@ -99,15 +99,12 @@ router.put('/:id', async (req, res) =>{
         req.params.id,
         {
             name: req.body.name,
-            description: req.body.description,
-            richDescription: req.body.richDescription,
+            description: req.body.description,   
             image: req.body.image,
             brand: req.body.brand,
             price: req.body.price,
             category: req.body.category,
             countInStock: req.body.countInStock,
-            rating: req.body.rating,
-            numReviews: req.body.numReviews,
             isFeatured: req.body.isFeatured,
         },  
         {new: true}
