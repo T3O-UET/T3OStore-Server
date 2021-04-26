@@ -39,12 +39,10 @@ const orderSchema = mongoose.Schema({
     }
 })
 
-orderSchema.virtual('id').get(function () {
-    return this._id.toHexString();
-});
-
-orderSchema.set('toJSON', {
-    virtuals: true,
+orderSchema.method('toJSON', function(){
+    const { __v, ...object } = this.toObject();
+    const { _id:id, ...result } = object;
+    return { ...result, id };
 });
 
 exports.Order = mongoose.model('Order', orderSchema);
