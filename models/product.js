@@ -9,7 +9,6 @@ const productSchema = mongoose.Schema({
         type: String,
         required: true
     },
-    
     image: {
         type: String,
         default: ''
@@ -36,7 +35,6 @@ const productSchema = mongoose.Schema({
         min: 0,
         max: 255
     },
-
     isFeatured: {
         type: Boolean,
         default: false
@@ -46,8 +44,6 @@ const productSchema = mongoose.Schema({
         default: Date.now
     }
 })
-
-
 productSchema.method('toJSON', function(){
     const { __v, ...object } = this.toObject();
     const { _id:id, ...result } = object;

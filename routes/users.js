@@ -1,4 +1,5 @@
 const { User } = require('../models/user');
+const { authenticateJWT } = require('../helpers/jwt')
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs')
@@ -6,25 +7,6 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const accessTokenSecret = process.env.secret;
 
-const authenticateJWT = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
-
-    if (authHeader) {
-        const token = authHeader.split(' ')[1];
-
-        jwt.verify(token, accessTokenSecret, async (err, userVal) => {
-            if (err) {
-                return res.sendStatus(403);
-            }
-
-            const user = await User.findById(userVal.id);
-            req.user = user;
-            next();
-        });
-    } else {
-        res.sendStatus(401);
-    }
-};
 
 //GET ALL
 router.get(`/`, authenticateJWT, async (req, res) => {

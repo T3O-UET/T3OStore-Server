@@ -1,130 +1,107 @@
-const {Order} = require('../models/order');
+const { authenticateJWT } = require('../helpers/jwt')
+const { Order } = require('../models/order');
+const { Product } = require('../models/product');
+
 const express = require('express');
-const { OrderItem } = require('../models/order-item');
+const { Types } = require('mongoose');
+
+
 const router = express.Router();
 
 //GET ALL
-router.get(`/`, async (req, res) =>{
-    const orderList = await Order.find().populate('user','name').sort({'dateOrdered': 1}) // sort : tu muon nhat den som nhat
+router.get(`/`, async (req, res) => {
+    const orderList = await Order.find().populate('user', 'name').populate('products.product').sort({ 'dateOrdered': 1 })
 
-    if(!orderList) {
-        res.status(500).json({success: false})
-    } 
+    if (!orderList) {
+        res.status(500).json({ success: false })
+    }
     res.send(orderList);
 })
 
 //GET BY ID
-router.get(`/:id`, async (req, res) =>{
+router.get(`/:id`, async (req, res) => {
     const order = await Order.findById(req.params.id)
-        .populate('user','name') 
-        .populate({
-            path: 'orderItems', 
-            populate: {path: 'product', populate: 'category'}
-        })
+        .populate('user', 'name')
 
-    if(!order) {
-        res.status(500).json({success: false})
-    } 
+    if (!order) {
+        res.status(500).json({ success: false })
+    }
     res.send(order);
 })
 
-// CREATE ORDER
-router.post('/', async (req,res) => {
 
-    const orderItemsIds = Promise.all(req.body.orderItems.map(async orderItem => {
-        let newOrderItem = new OrderItem({
-            quantity: orderItem.quantity,
-            product: orderItem.product
-        })
-        newOrderItem = await newOrderItem.save();
+router.post('/', authenticateJWT, async (req, res, next) => {
+    try {
+        const user = req.user;
+        /* Note 
+            body.products = {
+                productId: string
+                quantity: number
+            }
+        */
 
-        return newOrderItem._id;
-    }))
-    // console.log(orderItemsIds);
-    const orderItemsIdsResolved = await orderItemsIds
-    // console.log(orderItemsIdsResolved)
+        let totalPrice = 0;
 
-    const totalPrices = await Promise.all(orderItemsIdsResolved.map(async (orderItemId) => {
-        const orderItem = await OrderItem.findById(orderItemId).populate('product', 'price');
-        const totalPrice = orderItem.product.price * orderItem.quantity;
-        return totalPrice
-    }))
+        const listOrderProducts = req.body.products;
 
-    const totalPrice = totalPrices.reduce((a,b) => a + b , 0);
+        const productIds = Array.from(new Set(listOrderProducts.map(value => value.productId)));
+        const products = await Product.find({ _id: { $in: productIds } });
+        const orderProducts = [];
 
-    let order = new Order({
-        orderItems : orderItemsIdsResolved,
-        shippingAddress1: req.body.shippingAddress1,
-        shippingAddress2: req.body.shippingAddress2,
-        city: req.body.city,
-        phone: req.body.phone,
-        status: req.body.status,
-        totalPrice:totalPrice,
-        user: req.body.user 
-    })
-    order = await order.save();
-    if(!order) 
-        return res.status(404).send('The order cannot be created!');
-    res.send(order);
+        for (let i = 0; i < listOrderProducts.length; i++) {
+            const product = products.find(val => val.id == Types.ObjectId(listOrderProducts[i].productId))
+            totalPrice += product.price * listOrderProducts[i].quantity;
+            orderProducts.push({
+                quantity: listOrderProducts[i].quantity,
+                product: product
+            });
+        }
+
+        const order = new Order({
+            products: orderProducts,
+            totalPrice: totalPrice,
+            shippingAddress1: req.body.shippingAddress1,
+            shippingAddress2: req.body.shippingAddress2,
+            city: req.body.city,
+            phone: req.body.phone,
+            status: req.body.status,
+            user: user
+        });
+        await order.save();
+        return res.status(200).send(order);
+    } catch (error) {
+        next(error)
+    }
 })
 
 // UPDATE ORDER
-router.put('/:id', async (req,res) =>{
+router.put('/:id', async (req, res) => {
     const order = await Order.findByIdAndUpdate(
-        req.params.id, 
-        {   
-            status : req.body.status
+        req.params.id,
+        {
+            status: req.body.status
         },
-        {new: true} 
+        { new: true }
     )
-    ;
-    if(!order) 
+        ;
+    if (!order)
         return res.status(404).send('The order cannot be updated!');
     res.send(order);
 })
 
 // DELETE
-router.delete('/:id', (req,res) => {
-    Order.findByIdAndRemove(req.params.id)
-        .then(async order =>{
-            if(order){
-                await order.orderItems.map(async orderItem => {
-                    await OrderItem.findByIdAndRemove(orderItem)
-                })
-                return res.status(200).json({success:true, message: 'The order deleted!'})
-            }
-            else return res.status(404).json({success: false, message: 'order not found'})
-        })
-        .catch(err => {
-            return res.status(400).json({success: false, error: err})
-        })
-})
-
-//GET TOTAL SALES
-router.get('/get/totalsales', async (req,res) => {
-    const totalSales = await Order.aggregate([
-        {$group: {_id: null, totalsales: {$sum: '$totalPrice'} }}
-    ])
-    if(!totalSales) {
-        return res.status(400).send('The order sales cannot be generated')
+router.delete('/:id', authenticateJWT, async (req, res, next) => {
+    try {
+        const user = req.user;
+        const order = await Order.findOne({ _id: req.params.id });
+        if (order.user == String(user._id)) {
+            await Order.deleteOne({ _id: req.params.id });
+            return res.status(200).send("Delete complete");
+        }
+        return res.status(403).send("Fail");
+    } catch (error) {
+        next(error)
     }
-    res.send({totalSales : totalSales.pop().totalsales})
 })
 
-// GET Order COUNT
-router.get('/get/count', async (req, res) =>{
-    
-   
-    const orderCount =  await Order.countDocuments((count) => count)    
-
-
-    if(!orderCount) {
-        res.status(500).json({success: false})
-    } 
-    res.send({
-        orderCount: orderCount
-    }); 
-})
-
-
-module.exports =router;
+module.exports = router;

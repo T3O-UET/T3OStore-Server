@@ -1,10 +1,9 @@
 const express = require('express')
 const app = express()
-const bodyParser = require('body-parser')
 const morgan = require('morgan')
 const mongoose = require('mongoose')
 const cors = require('cors')
-const authJwt = require('./helpers/jwt')
+const { authJwt } = require('./helpers/jwt')
 const errorHandler = require('./helpers/error-handler')
 
 //config 
@@ -14,20 +13,15 @@ const conn = process.env.CONNECTION_STRING
 
 //Apply cors
 app.use(cors());
-app.options('*',cors())
+app.options('*', cors())
 
 //middleware 
 app.use(express.json())
 app.use(morgan('tiny'));
 //Người dùng đăng nhập vào dùng token được tạo ra mới có thể truy cập vào các API
 app.use(authJwt());
-app.use('/public/uploads',express.static(__dirname + '/public/uploads' ))
 // Quản lý error
 app.use(errorHandler);
-
-// app.get('/', (req,res) => {
-//     res.send('Hello world')
-// })
 
 // Routes
 const productsRoutes = require('./routes/products');
@@ -42,14 +36,15 @@ app.use(`${api}/orders`, ordersRoutes);
 
 // Connect database
 mongoose.connect(conn,
-    { 
-        useNewUrlParser: true, 
+    {
+        useNewUrlParser: true,
         useUnifiedTopology: true,
         dbName: 'Eshop-database',
     })
     .then(() => {
         console.log('database connection is ready...')
-    }) 
+        app.listen(3000, () => console.log(' server is running http://localhost:3000'));
+    })
     .catch(err => {
         console.log(err);
     })
