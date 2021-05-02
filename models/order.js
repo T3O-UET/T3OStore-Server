@@ -49,3 +49,4 @@ orderSchema.method('toJSON', function () {
 });
 
 exports.Order = mongoose.model('Order', orderSchema);
+
