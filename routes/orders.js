@@ -30,8 +30,8 @@ router.get(`/:id`, async (req, res) => {
 })
 
 
-router.post('/', authenticateJWT, async (req, res, next) => {
-    try {
+router.post('/', async (req, res) => {
+   
         const user = req.user;
         /* Note 
             body.products = {
@@ -43,6 +43,7 @@ router.post('/', authenticateJWT, async (req, res, next) => {
         let totalPrice = 0;
 
         const listOrderProducts = req.body.products;
+        console.log(listOrderProducts);
 
         const productIds = Array.from(new Set(listOrderProducts.map(value => value.productId)));
         const products = await Product.find({ _id: { $in: productIds } });
@@ -50,10 +51,11 @@ router.post('/', authenticateJWT, async (req, res, next) => {
 
         for (let i = 0; i < listOrderProducts.length; i++) {
             const product = products.find(val => val.id == Types.ObjectId(listOrderProducts[i].productId))
+            console.log(product)
             totalPrice += product.price * listOrderProducts[i].quantity;
             orderProducts.push({
                 quantity: listOrderProducts[i].quantity,
-                product: product
+                product: product.id
             });
         }
 
@@ -65,13 +67,14 @@ router.post('/', authenticateJWT, async (req, res, next) => {
             city: req.body.city,
             phone: req.body.phone,
             status: req.body.status,
-            user: user
+            user: req.body.user
         });
         await order.save();
+        if(!order){
+            return res.status(400).send('the order cannot be created')
+        }
         return res.status(200).send(order);
-    } catch (error) {
-        next(error)
-    }
+   
 })
 
 // UPDATE ORDER
