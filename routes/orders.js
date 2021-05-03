@@ -30,32 +30,40 @@ router.get(`/:id`, async (req, res) => {
 })
 
 
-router.post('/', async (req, res) => {
+router.post('/',  async (req, res) => {
    
-        const user = req.user;
+    // try {
         /* Note 
             body.products = {
                 productId: string
                 quantity: number
             }
         */
-
-        let totalPrice = 0;
+        const user = req.user
+        // console.log(user)
+        var totalPrice = 0;
 
         const listOrderProducts = req.body.products;
-        console.log(listOrderProducts);
+        // console.log(listOrderProducts)
 
-        const productIds = Array.from(new Set(listOrderProducts.map(value => value.productId)));
+        const productIds = Array.from(new Set(listOrderProducts.map(
+            value => {
+                return value.product.id
+            }
+            )));
+
+
         const products = await Product.find({ _id: { $in: productIds } });
         const orderProducts = [];
 
         for (let i = 0; i < listOrderProducts.length; i++) {
-            const product = products.find(val => val.id == Types.ObjectId(listOrderProducts[i].productId))
-            console.log(product)
+            const product = products.find(val => val.id == Types.ObjectId(listOrderProducts[i].product.id))
+           
             totalPrice += product.price * listOrderProducts[i].quantity;
+            // console.log(product)
             orderProducts.push({
                 quantity: listOrderProducts[i].quantity,
-                product: product.id
+                product: product
             });
         }
 
@@ -70,10 +78,14 @@ router.post('/', async (req, res) => {
             user: req.body.user
         });
         await order.save();
-        if(!order){
-            return res.status(400).send('the order cannot be created')
-        }
+        // if(!order){
+        //     return res.status(400).send('the order cannot be created')
+        // }
+                
         return res.status(200).send(order);
+    // } catch(error) {
+    //     next(error)
+    // }
    
 })
 

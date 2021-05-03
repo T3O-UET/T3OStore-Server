@@ -22,6 +22,8 @@ app.use(morgan('tiny'));
 app.use(authJwt());
 // Quản lý error
 app.use(errorHandler);
+// 
+app.use('/public/upload', express.static(__dirname + '/public/upload'));
 
 // Routes
 const productsRoutes = require('./routes/products');
@@ -48,4 +50,9 @@ mongoose.connect(conn,
     .catch(err => {
         console.log(err);
     })
+    
 
+var server = app.listen(process.env.PORT || 3000, function (){
+    var port = server.address().port;
+    console.log("Dang chay o " + port)
+})
