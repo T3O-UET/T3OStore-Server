@@ -50,5 +50,9 @@ mongoose.connect(conn,
     .catch(err => {
         console.log(err);
     })
+    
 
-
+var server = app.listen(process.env.PORT || 3000, function (){
+    var port = server.address().port;
+    console.log("Dang chay o " + port)
+})
