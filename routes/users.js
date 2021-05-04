@@ -85,7 +85,7 @@ router.post('/login', async (req, res) => {
 router.put('/updateUser', authenticateJWT, async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
-        req.user._id,
+        { _id: req.user._id },
         {
             name: req.body.name,
             address: req.body.address,

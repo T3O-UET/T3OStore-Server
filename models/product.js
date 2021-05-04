@@ -3,15 +3,15 @@ const mongoose = require('mongoose');
 const productSchema = mongoose.Schema({
     name: {
         type: String,
-        required: true,
+        // required: true,
     },
     description: {
         type: String,
-        required: true
+        // required: true
     },
     image: {
         type: String,
-        default: ''
+        default: "https://media.istockphoto.com/videos/loading-circle-icon-on-white-background-animation-video-id1093418606?s=640x640"
     },
     images: [{
         type: String
@@ -31,7 +31,7 @@ const productSchema = mongoose.Schema({
     },
     countInStock: {
         type: Number,
-        required: true,
+        // required: true,
         min: 0,
         max: 1000
     },
